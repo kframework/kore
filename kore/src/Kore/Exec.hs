@@ -91,6 +91,10 @@ import Kore.Internal.Predicate (
  )
 import qualified Kore.Internal.SideCondition as SideCondition
 import Kore.Internal.TermLike
+import Kore.Log.DebugRewriteTrace (
+    debugFinalPatterns,
+    debugInitialPattern,
+ )
 import Kore.Log.ErrorRewriteLoop (
     errorRewriteLoop,
  )
@@ -223,7 +227,8 @@ exec
     breadthLimit
     verifiedModule
     strategy
-    (mkRewritingTerm -> initialTerm) =
+    inputPattern@(mkRewritingTerm -> initialTerm) = do
+        debugInitialPattern inputPattern
         evalSimplifier verifiedModule' $ do
             initialized <- initializeAndSimplify verifiedModule
             let Initialized{rewriteRules} = initialized
@@ -264,6 +269,7 @@ exec
                         catMaybes $
                             extractProgramState
                                 <$> finalConfigs
+            debugFinalPatterns finalConfigs'
             exitCode <- getExitCode verifiedModule finalConfigs'
             let finalTerm =
                     forceSort initialSort $

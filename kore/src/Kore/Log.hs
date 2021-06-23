@@ -36,6 +36,9 @@ import Data.Functor.Contravariant (
 import Data.Text (
     Text,
  )
+import Kore.Log.DebugRewriteTrace (
+    rewriteTraceLogger,
+ )
 import Kore.Log.DebugSolver (
     DebugSolverOptions (DebugSolverOptions),
     solverTranscriptLogger,
@@ -77,9 +80,10 @@ withLogger reportDirectory koreLogOptions = runContT $ do
     mainLogger <- ContT $ withMainLogger reportDirectory koreLogOptions
     let KoreLogOptions{debugSolverOptions} = koreLogOptions
     smtSolverLogger <- ContT $ withSmtSolverLogger debugSolverOptions
+    traceLogger <- ContT $ withRewriteTraceLogger koreLogOptions
     let KoreLogOptions{logSQLiteOptions} = koreLogOptions
     logSQLite <- ContT $ withLogSQLite logSQLiteOptions
-    return $ mainLogger <> smtSolverLogger <> logSQLite
+    return $ mainLogger <> smtSolverLogger <> traceLogger <> logSQLite
 
 withMainLogger ::
     FilePath ->
@@ -113,6 +117,17 @@ withSmtSolverLogger DebugSolverOptions{logFile} continue =
             Colog.withLogTextFile
                 filename
                 (continue . solverTranscriptLogger)
+
+withRewriteTraceLogger ::
+    KoreLogOptions -> (LogAction IO ActualEntry -> IO a) -> IO a
+withRewriteTraceLogger KoreLogOptions{rewriteTraceFileName} continue =
+    case rewriteTraceFileName of
+        Nothing -> continue mempty
+        Just filename -> do
+            writeFile filename ""
+            Colog.withLogByteStringFile
+                filename
+                (continue . rewriteTraceLogger)
 
 koreLogTransformer ::
     KoreLogOptions ->

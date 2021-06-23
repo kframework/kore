@@ -81,10 +81,14 @@ import Kore.Internal.Predicate (
  )
 import Kore.Log.DebugClaimState
 import Kore.Log.DebugProven
+import Kore.Log.DebugRewriteTrace
 import Kore.Log.InfoExecBreadth
 import Kore.Log.InfoProofDepth
 import Kore.Log.WarnStuckClaimState
 import Kore.Log.WarnTrivialClaim
+import Kore.Reachability.AllPathClaim (
+    allPathRuleToTerm,
+ )
 import Kore.Reachability.Claim
 import Kore.Reachability.ClaimState (
     ClaimState,
@@ -93,6 +97,9 @@ import Kore.Reachability.ClaimState (
     extractUnproven,
  )
 import qualified Kore.Reachability.ClaimState as ClaimState
+import Kore.Reachability.OnePathClaim (
+    onePathRuleToTerm,
+ )
 import qualified Kore.Reachability.Prim as Prim (
     Prim (..),
  )
@@ -280,6 +287,10 @@ proveClaim
     (Axioms axioms)
     (goal, depthLimit) =
         traceExceptT D_OnePath_verifyClaim [debugArg "rule" goal] $ do
+            debugInitialClaim (from goal) $ case goal of
+                OnePath (onePathRuleToTerm -> term) -> term
+                AllPath (allPathRuleToTerm -> term) -> term
+
             let startGoal = ClaimState.Claimed (Lens.over lensClaimPattern mkGoal goal)
                 limitedStrategy =
                     strategy
